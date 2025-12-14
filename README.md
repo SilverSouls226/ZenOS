@@ -25,3 +25,12 @@ The following tools are required on the host system:
 - xorriso
 - GDB
 - QEMU
+
+## Directory Structure
+zen-os/<br>
+├── README.md<br>
+├── .gitignore<br>
+├── src/&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;# kernel C code<br>
+├── arch/x86_64/&emsp;&ensp;&thinsp;# architecture-specific code (ASM, linker)<br>
+├── build/&emsp;&emsp;&emsp;&emsp;&emsp;# build artifacts<br>
+└── scripts/&emsp;&emsp;&emsp;&emsp;&thinsp;# helper scripts
