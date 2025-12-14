@@ -34,3 +34,18 @@ zen-os/<br>
 ├── arch/x86_64/&emsp;&ensp;&thinsp;# architecture-specific code (ASM, linker)<br>
 ├── build/&emsp;&emsp;&emsp;&emsp;&emsp;# build artifacts<br>
 └── scripts/&emsp;&emsp;&emsp;&emsp;&thinsp;# helper scripts
+
+## Cross-compiler dependencies
+ - gmp
+ - mpfr
+ - libmpc
+
+## Roadmap
+- [ ] Cross-compiler toolchain
+- [ ] Bare-metal kernel entry
+- [ ] VGA text output
+- [ ] Memory management
+- [ ] Interrupt handling
+- [ ] Scheduler
+- [ ] User mode support
+- [ ] File system
