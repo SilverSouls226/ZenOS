@@ -49,3 +49,10 @@ zen-os/<br>
 - [ ] Scheduler
 - [ ] User mode support
 - [ ] File system
+
+## Cross-Compiler Toolchain
+A freestanding x86_64-elf cross-compiler is used to ensure the kernel does not depend
+on the host operating system.
+Components:
+- binutils (assembler and linker)
+- GCC (C compiler without standard library)
