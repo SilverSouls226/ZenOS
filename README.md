@@ -1,7 +1,7 @@
 # ZenOS
 
 ZenOS is a minimal educational operating system built from scratch for the x86_64 architecture.
-The goal of this project is to understand how an operating system works at the lowest level:
+The goal of this project is to understand how an operating system works at the lowest level including but not limited to:
  - booting
  - memory management
  - interrupts
