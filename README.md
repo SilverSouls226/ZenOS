@@ -1,7 +1,6 @@
 # ZenOS
 
 ZenOS is a minimal educational operating system built from scratch for the x86_64 architecture.
-
 The goal of this project is to understand how an operating system works at the lowest level:
  - booting
  - memory management
@@ -51,8 +50,19 @@ zen-os/<br>
 - [ ] File system
 
 ## Cross-Compiler Toolchain
-A freestanding x86_64-elf cross-compiler is used to ensure the kernel does not depend
-on the host operating system.
+A freestanding x86_64-elf cross-compiler is used to ensure the kernel does not depend on the host operating system.
 Components:
 - binutils (assembler and linker)
 - GCC (C compiler without standard library)
+The GCC build is configured as freestanding:
+- No libc
+- No system calls
+- No host OS dependencies
+
+## Building the Toolchain
+The cross-compiler toolchain is not stored in the repository.
+To build it locally run:
+```bash
+./scripts/build-toolchain.sh
+```
+This will download, build, and install a freestanding x86_64-elf GCC toolchain under toolchain/install/.
