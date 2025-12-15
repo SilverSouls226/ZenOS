@@ -2,3 +2,6 @@ build/
 *.o
 *.bin
 *.iso
+toolchain/src/
+toolchain/build/
+toolchain/install/
