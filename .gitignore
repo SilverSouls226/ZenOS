@@ -5,3 +5,4 @@ build/
 toolchain/src/
 toolchain/build/
 toolchain/install/
+diff.txt
