@@ -20,10 +20,10 @@ zen-os/
  ├── scripts/
  ├── src/
  └── toolchain/
-	 ├── build/
-	  |	     └── binutils/
-	 ├── install/
-	 └── src/
+     ├── build/
+      |	     └── binutils/
+     ├── install/
+     └── src/
 
 
 
@@ -190,12 +190,13 @@ If you used libc, it would try to call syscalls, but since no syscalls exist yet
 > The kernel implements the syscalls and hence cannot depend on libc. The kernel may later include a very tiny custom *libc-like* subset. Early kernels often implement `memcpy`, `memset`, `strlen` etc manually.
 
 ### Linker
-The linker script (`.ld` file, stands for Linker Description, just a convention, linker doesn't care after file extension) is a set of instructions for the linker. The linker
+The linker
  - decides wherein memory everything lies
  - decides what runs first and
  - how the sections are laid out
  - combines all the `.o` files into one binary
- We use a dedicated linker script so that the linker doesn't assume that we are building a normal program
+The linker script (`.ld` file, stands for Linker Description, just a convention, linker doesn't care after file extension) is a set of instructions for the linker. We use a dedicated linker script so that the linker doesn't assume that we are building a normal program. The `.ld` is like a blueprint used by the linker.
+
 ## Commands
 
 ### Installing required packages
@@ -212,10 +213,10 @@ tar -xf gcc-13.2.0.tar.xz
 ```
  - Sets pwd to toolchain/src. 
  - `wget` = web get
-	 - It connects to the given URL and downloads the file, saving it to the current directory while keeping the original file name (`binutils-2.41.tar.xz` and `gcc-13.2.0.tar.xz`)
+     - It connects to the given URL and downloads the file, saving it to the current directory while keeping the original file name (`binutils-2.41.tar.xz` and `gcc-13.2.0.tar.xz`)
   - `binutils-2.41.tar.xz` and `gcc-13.2.0.tar.xz` are **compressed archives** containing the binutils source code.
  - tar is an archive tool. `-x` means to extract the given file, `-f` specifies the file the operation is to be done on.
-	 - Translation: Extract all files from this archive into the current directory
+     - Translation: Extract all files from this archive into the current directory
 
 ### Building binutils (assembler and linker)
 ```bash
@@ -237,20 +238,20 @@ make install
  - `../../src/binutils-2.41/configure` runs the `configure` script in the current `toolchain/build/binutils/` directory even though is it located in the `toolchain/src/` directory.
  - `--target=x86_64-elf` tells the script to generate code for x86_64 without any operating system ABI. Makes it useable for kernels.
  - `--prefix=$(pwd)/../../install` tell the script where to save the final binaries.
-	 - `pwd` right now is `/zen-os/toolchain/build/binutils`
-	 - `pwd/../..` becomes `/zen-os/toolchain`
-	 - `pwd/../../install` becomes `/zen-os/toolchain/installs`
-	 - This avoids polluting `/usr/bin`, requiring sudo, conflicting with system tools.
+     - `pwd` right now is `/zen-os/toolchain/build/binutils`
+     - `pwd/../..` becomes `/zen-os/toolchain`
+     - `pwd/../../install` becomes `/zen-os/toolchain/installs`
+     - This avoids polluting `/usr/bin`, requiring sudo, conflicting with system tools.
  - `--with-sysroot` Tells the script to assume a separate root directory for the target system.
-	 - Prepares for future headers and libraries 
-	- Is standard practice for OS dev
-	- Prevents accidental host dependency leakage
+     - Prepares for future headers and libraries 
+    - Is standard practice for OS dev
+    - Prevents accidental host dependency leakage
 - `--disable-nls` disables natural language support (Translation, localization, message catalogs.). Which means no localization, fewer dependencies and simpler builds.
 - `--disable-werror` Prevents warnings being treated as errors. Newer compilers + older code = warnings, werror would break the build unnecessarily. Disabling it makes the build robust.
 - `make -j$(nproc)` Breakdown: 
-	 - `make` builds according to makefile
-	 - `-j` allows multiple jobs at once
-	 - `$(nproc)` number of CPU cores
+     - `make` builds according to makefile
+     - `-j` allows multiple jobs at once
+     - `$(nproc)` number of CPU cores
  - Translation: Compile binutils using all available CPU cores. Makes builds faster. Does not change the output, only speed.
  - `make install` copies the built tools into the directory specified by --prefix
 
@@ -287,20 +288,20 @@ make install-gcc
 - `../../src/gcc-13.2.0/configure` runs the configure script in the current  `toolchain/build/gcc` directory even though it is located in the `toolchain/src/gcc-13.2.0/` directory.
 - `--target=x86_64-elf` tells the script to generate code for x86_64 without any operating system ABI. Makes it usable for kernels.
 - `--prefix=$(pwd)/../../install` tells the script where to save the final binaries.
-	- `pwd` right now is `/zen-os/toolchain/build/gcc`
-	- `pwd/../..` becomes `/zen-os/toolchain`
-	- `pwd/../../install` becomes `/zen-os/toolchain/installs`
-	- This avoids polluting `/usr/bin`, requiring sudo, conflicting with system tools.
+    - `pwd` right now is `/zen-os/toolchain/build/gcc`
+    - `pwd/../..` becomes `/zen-os/toolchain`
+    - `pwd/../../install` becomes `/zen-os/toolchain/installs`
+    - This avoids polluting `/usr/bin`, requiring sudo, conflicting with system tools.
 - `--disable-nls` disables natural language support (Translation, localization, message catalogs.). Which means no localization, fewer dependencies and simpler builds.
 - `--enable-languages=c` tells GCC to build only the C compiler, not C++, fortan or anything else.  Everything else is overhead.
 - `--without-headers` tells GCC not to expect libc headers to exist. It enforces freestanding mode, without it
-	- GGC assumes a hosted environment
-	- Tries to use system headers
-	- Breaks kernel compilation subtly
+    - GGC assumes a hosted environment
+    - Tries to use system headers
+    - Breaks kernel compilation subtly
 - `make all-gcc -j$(nproc)` builds the GCC frontend, code generator but not all runtime libraries. We don't do the full GCC because
-	- No libc
-	- No target OS
-	- Runtime libraries come later (or never)
+    - No libc
+    - No target OS
+    - Runtime libraries come later (or never)
 - `make install-gcc` installs x86_64-elf-gcc and supporting internal files. No libraries, no headers.
 - This installation is expected to take some time.
 
@@ -350,29 +351,29 @@ scripts/tests/test.o: ELF 64-bit LSB relocatable, x86-64, version 1 (SYSV), not 
 ```
 This indicates that the output file is a  **64-bit** **relocatable object** of **ELF format** for the **x86-64**.
 - ELF (Executable and Linkable Format)
-	- It is a standardized binary file format that is understood by compilers, linkers, bootloaders and kernels.
-	- It is the common language (file type) of the toolchain. The compiler emits ELF, linker consumes ELF, GRUB loads ELF, your kernel is an ELF.
-	- Can represent object files, executable, shared libraries, kernels.
+    - It is a standardized binary file format that is understood by compilers, linkers, bootloaders and kernels.
+    - It is the common language (file type) of the toolchain. The compiler emits ELF, linker consumes ELF, GRUB loads ELF, your kernel is an ELF.
+    - Can represent object files, executable, shared libraries, kernels.
 - 64-bit
-	- System bus size (Registers, addresses etc)
+    - System bus size (Registers, addresses etc)
 - LSB
-	- Least Significant Byte First. Describes endianness. Using LSB because x86 CPUs are little-endian. Means that
-		- Multi byte numbers are stored in little-endian.
-		- Lowest byte at lowest address.
+    - Least Significant Byte First. Describes endianness. Using LSB because x86 CPUs are little-endian. Means that
+        - Multi byte numbers are stored in little-endian.
+        - Lowest byte at lowest address.
 - Relocatable Object
-	- `.o` files that contain code, symbols, relocation entries.
-	- This is not the final executable, has no fixed memory addresses and can be moved around by the linker.
-	- The linker decides where everything lives, applies relocation and produces the final ELF kernel.
+    - `.o` files that contain code, symbols, relocation entries.
+    - This is not the final executable, has no fixed memory addresses and can be moved around by the linker.
+    - The linker decides where everything lives, applies relocation and produces the final ELF kernel.
 - x84-64
-	- Tells you the ISA (Instruction Set Architecture) the object file was made for.
-	- Shows that we made the correct machine code for AMD64 / Intel 64 and is for 64-bit x86 not for ARM, i386 etc.
+    - Tells you the ISA (Instruction Set Architecture) the object file was made for.
+    - Shows that we made the correct machine code for AMD64 / Intel 64 and is for 64-bit x86 not for ARM, i386 etc.
 - Version 1 (SYSV)
-	- Refers to the ELF ABI Version.
-	- System V ABI is the standard Unix ABI, used by Linux, BSDs, and bootloaders.
-	- GRUB expects the System V ABI so our toolchain must produce the same.
+    - Refers to the ELF ABI Version.
+    - System V ABI is the standard Unix ABI, used by Linux, BSDs, and bootloaders.
+    - GRUB expects the System V ABI so our toolchain must produce the same.
 - Not Stripped:
-	- Still includes debug symbols and function names are present so that GDB can understand it.
-	- Stripping removes them to save space which we do not want to do in development as it would make debugging painful.
+    - Still includes debug symbols and function names are present so that GDB can understand it.
+    - Stripping removes them to save space which we do not want to do in development as it would make debugging painful.
 To look inside the file, we can run the following command:
 ```bash
 toolchain/install/bin/x86_64-elf-objdump -d scripts/tests/test.o
@@ -432,64 +433,198 @@ SECTIONS
  - `_start` is the entry symbol
  - Page-aligned sections simplify later memory work
  - `ENTRY(_start)`
-	- `ENTRY` is a linker directive
-	- `_start` is a symbol name
-	- **Translation:** When the kernel is loaded, execution begins at the symbol `_start`.
-	- Must match the `.global _start` in the multiboot2 file (next section). If the symbol doesn't exist then the kernel won't boot.
+    - `ENTRY` is a linker directive
+    - `_start` is a symbol name
+    - **Translation:** When the kernel is loaded, execution begins at the symbol `_start`.
+    - Must match the `.global _start` in the multiboot2 file (next section). If the symbol doesn't exist then the kernel won't boot.
 - `SECTIONS` indicates the start of the memory layout description. It describes:
-	 - Memory addresses
-	 - Section Placement
-	 - Alignment
+     - Memory addresses
+     - Section Placement
+     - Alignment
  - `. - 1M`
-	 - `.` refers to current location counter
-	 - `1M` means 1 megabyte (0x100000)
-	 - **Translation:** Start placing the kernel at the physical address 1MB.
+     - `.` refers to current location counter
+     - `1M` means 1 megabyte (0x100000)
+     - **Translation:** Start placing the kernel at the physical address 1MB.
 
 > [!question] Why 1 MB?
 > - BIOS and Legacy real-mode data lives below 1MB
 > - Historically safe and conventional
-> - GRUB loads kernels here by defualt
+> - GRUB loads kernels here by default
 
  - `.text: ALIGN(4K) {...}`
-	 - `.text`: Name of the section
-	 - `:`: assignment operator
-	 - `ALIGN(4K)`: Alignment Constraint
-	 - `{}`: The contents of the section
-	 - **Translation:** Create a section `.text` aligned to 4096 bytes.
+     - `.text`: Name of the section
+     - `:`: assignment operator
+     - `ALIGN(4K)`: Alignment Constraint
+     - `{}`: The contents of the section
+     - **Translation:** Create a section `.text` aligned to 4096 bytes.
 
  > [!Question] Why 4096 bytes (4Kib)?
 >- Page size on x86_64 is 4Kib.
 >- Makes paging easier later on.
->- Avoids instructions crossing page boundries.
+>- Avoids instructions crossing page boundaries.
 
 - `*(.multiboot)` 
-	- `*`: wildcard (from all input object files)
-	- `(.multiboot)`: section name
-	- **Translation:** Take all multiboot sections from all object files and put them here.
+    - `*`: wildcard (from all input object files)
+    - `(.multiboot)`: section name
+    - **Translation:** Take all multiboot sections from all object files and put them here.
  - `*(.text*)`
-	- Same as `*(.multiboot)` but the second  wildcard matches
-		- `.text`
-		- `.text.startup`
-		- `.text.foo`
-	- **Translation:** Place all executable code here
+    - Same as `*(.multiboot)` but the second  wildcard matches
+        - `.text`
+        - `.text.startup`
+        - `.text.foo`
+    - **Translation:** Place all executable code here
 - `.rodata : ALIGN { *(.rodata*) }`
-	- `.rodata` stands for read only data
-	- Includes
-		- Constants
-		- String literals
-		- Lookup Tables
-	- Separated because 
-		- Can later be marked as read-only in paging
-		- Prevents accidental writes
+    - `.rodata` stands for read only data
+    - Includes
+        - Constants
+        - String literals
+        - Lookup Tables
+    - Separated because 
+        - Can later be marked as read-only in paging
+        - Prevents accidental writes
 - `.data : ALIGN(4K) { *(.data*) }`
-	- Has initialized Global Variables
+    - Has initialized Global Variables
 - `.bas : ALIGN(4K) {...}`
-	- `.bas` stands for **Block Started by Symbol** (historical name)
-	- Contains
-		- Uninitialized Globals
-		- Zero initialized variables
-- `*(COMMON)`
-	- Old-style for uninitialized Globals
-	- Compiler compatability relic
-	- Included for saftey
+    - `*(.bas*)` stands for **Block Started by Symbol** (historical name)
+    - Contains
+        - Uninitialized Globals
+        - Zero initialized variables
+    - `*(COMMON)`
+        - Old-style for uninitialized Globals
+        - Compiler compatibility relic
+        - Included for safety
 The memory layout is deterministic and the linker now knows exactly how to construct the `kernel.elf`
+
+### Multiboot2 header
+Required to let GRUB to load this binary. Create the following file
+```bash
+nano arch/x86_64/boot.s
+```
+`nano arch/x86_64/boot.s`:
+```asm
+.set ALIGN,    1<<0
+.set MEMINFO,  1<<1
+.set FLAGS,    ALIGN | MEMINFO
+.set MAGIC,    0xE85250D6
+.set CHECKSUM, -(MAGIC + FLAGS)
+
+.section .multiboot
+.align 8
+.long MAGIC
+.long FLAGS
+.long CHECKSUM
+.long 0
+.long 0
+
+.section .text
+.global _start
+.extern kernel_main
+
+_start:
+    mov $stack_top, %rsp
+    call kernel_main
+
+hang:
+    cli
+    hlt
+    jmp hang
+
+.section .bss
+.align 16
+stack_bottom:
+    .skip 16384
+stack_top:
+```
+ - This code 
+     - Declares Multiboot2 compliance
+     - Creates a stack manually
+     - Transfer control to C
+
+ - `.set`: Assembler constant definition
+ - `ALIGN`: Const name
+ - `1<<0`: bit shift 
+ - Meaning of lines 1 - 5:
+     - Set ALIGN = 0001
+     - MEMINFO = 0010
+     - FLAGS = 0001 | 0010 = 0011 \[bitwise OR]
+     - MAGIC = 11101000010100100101000011010110
+     - CHECKSUM = 2's complement of (MAGIC + FLAGS) = 2's complement of (11101000010100100101000011011001) = 100010111101011011010111100100111
+> [!info] MAGIC and CHECKSUM
+> The MAGIC number is not any arbitrary number. GRUB searches for this exact value, the kernel binary will be ignored if this number is not found.
+> CHECKSUM is used for a simple integrity check to prevent false positives. It's value is calculated such that `MAGIC + FLAGS + CHECKSUM = 0`
+- `.section .multiboot`
+    - Switched the output to the `.multiboot section`.
+    - Should match what is given in the linker script.
+- `.align 8`
+    - Aligns to 8 bytes
+    - Required by Multiboot2 spec.
+- `.long MAGIC`
+    - Emit 4 bytes containing MAGIC
+- `.long FLAGS`
+    - Emit flags
+- `.long CHECKSUM`
+    - Emit checksum
+- `.long 0` (x2)
+    - Reserved fileds (length and address field omitted)
+- `.section text`
+    - Switch to executable code
+- `.global _start`
+    - Make `_start` visible to the linker
+    - Without this `ENTRY(_start)` fails and the kernel will not boot.
+- `.extern kernel_main`
+    - Declares that this symbol `kernel_main` (declared in C) exists somewhere.
+- `_start:`
+    - This is the first instruction the CPU executes
+- `mov $stack_top, %rsp`
+    - `$`: immediate value
+    - `stack_top`: address
+    - `%rsp`:  stack pointer register
+    - Initializes the stack pointer. No stack exists till this line.
+- `call kernel_main`
+    - Pushes return address.
+    - Jumps to C code.
+- `hang:`
+    - Label
+- `cli`
+    - Clear Interupt Flag
+    - Disables hardware interupts
+- `hlt`
+    - Halt CPU until interrupt
+    - It is a low power, stable state
+- `jmp hang`
+    - Infinite Loop so that the kernel may never return.
+- `.section .bss`
+    - Switch to uninitialized memory.
+- `.align 16`
+    - Align stack to 16 bytes.
+    - Required by ABI.
+- `stack_bottom:`
+    - Label
+- `.skip 16384`
+    - Reserve 16KB for stack
+- `stack_top`:
+    - Label at the top of the stack.
+    - Stack grows downwards.
+
+### Kernel main 
+Create the kernel c file
+```bash
+nano src/kernel.c
+```
+`src/kernel.c`:
+```
+void kernel_main(void) {
+    for (;;) {
+        __asm__ volatile ("hlt");
+    }
+}
+```
+This does nothing, just halts the CPU. `__asm__ volatile ("hlt")` embeds the assembly statement "hlt" without any optimization whatsoever.
+    - `__asm__` is a GCC keyword to embed assembly.
+    - `vloatile` tells the compiler not to take this out while optimizing. Without it, the compiler may:
+        - remove the instruction
+        - reorder it
+        - assume it does nothing
+    - `"hlt"` is the raw assembly instruction that halts the CPU till an interrupt occurs. Since interrupts are disabled, the CPU will sleep forever. This prevents
+        - Undefined execution
+        - Falling off the end of `kernel_main`
