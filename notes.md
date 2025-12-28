@@ -713,3 +713,70 @@ A makefile is a dependency graph describes relationships and  is what make uses 
 > 2. The target exists and mtime(target) < any(mtime(dependencies)): rebuild the target
 > 3. The target exists and mtime(target) > all(mtime(dependencies)): do nothing
 > This is a reliable method because code editors update mtime when saving a file, compilers, assemblers and linkers update mtime after compiling, assembling or linking a file and the file system keeps track of the mtime of all files.
+
+### Build the kernel
+```bash
+make
+```
+Should build without any errors.
+### Create ISO filesystem
+```bash
+mkdir -p iso/boot/grub
+cp build/kernel.elf iso/boot/kernel.elf
+```
+### GRUB config
+Create `iso/boot/grub/grub.cfg` with the following contents:
+```
+set timeout=0
+set default=0
+
+menuentry "Zen OS" {
+    multiboot2 /boot/kernel.elf
+    boot
+}
+```
+- `set timeout=0` assigns timeout the value of 0, i.e shows the grub menu for 0 seconds.
+- `set default=0` the index of the default menu entry to boot. (Refers to first index since it follows 0-based indexing)
+- `menuentry "Zen OS" {}` defined a bootable menu item.
+    - `menuentry` GRUB keyword for a boot option.
+    - `"Zen OS"` human-readable name show in the entry.
+    - `{}` block of commands to execute if that entry is chosen.
+    - `multiboot2 /boot/kernel.elf` 
+        - `multiboot2` tells grub that the file about to be loaded is a Multiboot2-compliant kernel.
+            - GRUB scans the binary for a multiboot2 header, verifies magic number, checks checksum, reads flags, builds boot information structures and then loads the kernel into memory.
+            - If any of those fail then GRUB refuses to boot
+        - `/boot/kernel.elf` is the absolute path inside the ISO file system, not the host file system and is hence resolved relative to the ISO root.
+    - `boot` transfers control to the loaded kernel. CPU jumps to the kernel entry point and `_start` symbol executes. GRUB no longer exists as far as the CPU is concerned.
+### Building the ISO
+```
+grub-mkrescue -o zen-os.iso iso
+```
+- `grub-mkrescue`
+    - Creates a bootable disk image
+    - Installs GRUB boot sectors
+    - Builds a filesystem
+    - Embeds GRUB modules
+    - Sets up BIOS and (optionally) UEFI boot paths
+- `-o zen-os.iso` specifies the output iso image file that will be the bootable CD-ROM image.
+- `iso` is the input directory. Is is the structure that becomes the disk. With this, GRUB
+    - Treats `iso/` as the file system root.
+    - Packs it into an ISO 9660 image
+    - Places GRUB in the correct boot locations
+    - Copies `boot/grub/grub.cfg` and `boot/kernel.elf`
+Should not result in any errors and the following output (or something similar)
+```bash
+xorriso 1.5.6 : RockRidge filesystem manipulator, libburnia project.
+
+Drive current: -outdev 'stdio:zen-os.iso'
+Media current: stdio file, overwriteable
+Media status : is blank
+Media summary: 0 sessions, 0 data blocks, 0 data, 30.1g free
+Added to ISO image: directory '/'='/tmp/grub.pgOQwB'
+xorriso : UPDATE :    1058 files added in 1 seconds
+Added to ISO image: directory '/'='/home/silversouls/projects/zen-os/iso'
+xorriso : UPDATE :    1062 files added in 1 seconds
+xorriso : NOTE : Copying to System Area: 512 bytes from file '/usr/lib/grub/i386-pc/boot_hybrid.img'
+ISO image produced: 15586 sectors
+Written to medium : 15586 sectors at LBA 0
+Writing to 'stdio:zen-os.iso' completed successfully.
+```
