@@ -619,7 +619,8 @@ void kernel_main(void) {
     }
 }
 ```
-This does nothing, just halts the CPU. `__asm__ volatile ("hlt")` embeds the assembly statement "hlt" without any optimization whatsoever.
+This does nothing, just halts the CPU.
+`__asm__ volatile ("hlt")` embeds the assembly statement "hlt" without any optimization whatsoever.
     - `__asm__` is a GCC keyword to embed assembly.
     - `vloatile` tells the compiler not to take this out while optimizing. Without it, the compiler may:
         - remove the instruction
@@ -628,3 +629,87 @@ This does nothing, just halts the CPU. `__asm__ volatile ("hlt")` embeds the ass
     - `"hlt"` is the raw assembly instruction that halts the CPU till an interrupt occurs. Since interrupts are disabled, the CPU will sleep forever. This prevents
         - Undefined execution
         - Falling off the end of `kernel_main`
+
+### Makefile
+Create:
+```bash
+nano Makefile
+```
+Makefile:
+```
+TARGET = x86_64-elf
+CC = toolchain/install/bin/$(TARGET)-gcc
+AS = toolchain/install/bin/$(TARGET)-as
+LD = toolchain/install/bin/$(TARGET)-ld
+
+CFLAGS = -ffreestanding -O2 -Wall -Wextra
+LDFLAGS = -T arch/x86_64/linker.ld -nostdlib
+
+KERNEL = build/kernel.elf
+
+OBJS = \
+  arch/x86_64/boot.o \
+  src/kernel.o
+
+all: $(KERNEL)
+
+build/kernel.elf: $(OBJS)
+    $(LD) $(LDFLAGS) -o $@ $^
+
+arch/x86_64/boot.o: arch/x86_64/boot.s
+    $(AS) $< -o $@
+
+src/kernel.o: src/kernel.c
+    $(CC) $(CFLAGS) -c $< -o $@
+
+clean:
+    rm -rf build/*.o build/*.elf
+```
+A makefile is a dependency graph describes relationships and  is what make uses to decide which files need to be re compiled and linked together by checking if its dependencies are newer.
+- Lines 1 - 13 just assign reusable strings to variables used for textual substitution
+    - `TARGET = x86_64-elf` sets the target Architecture
+    - `CC = toolchain/install/bin/$(TARGET)-gcc` sets the C Compiler Path
+    - `AS = toolchain/install/bin/$(TARGET)-as` sets the Assembler Path
+    - `LD = toolchain/install/bin/$(TARGET)-ld` sets the Linker Path
+    - `CFLAGS = -ffreestanding -O2 -Wall -Wextra` sets the compiler flags
+        - `-ffreestanding` tells GCC this is not a normal program, not to use libc, no implicit main, not host OS features
+        - `-O2` tells GCC to optimize reasonably and avoids insane reordering unlike `-03`
+        - `-Wall` enables common warnings
+        - `-Wextra` enables more warnings
+    - `LDFLAGS = -T arch/x86_64/linker.ld -nostdlib` sets the linker flags
+        - `-T linker.ld` uses our linker script and ignores default memory layout.
+        - `-nostdlib` tells not to link libc or startup code.
+    - `KERNEL = build/kernel.elf` defines the final product.
+    - `OBJS = arch/x86_64/boot.o src/kernel.o` lists the object files that the kernel uses.
+`all`, `build/kernel.elf`, `arch/x86_64/boot.o`, `src/kernel.o`, `clean` are meta-targets.  It won't produce files with those names, it checks that target's dependencies. For example, it  just says to satisfy `all`, make sure `$(KERNEL)` exists. `all` is just the de-facto default target name. Just a convention, it can be anything, `make` will always run the first target by default unless specified, for example `make clean`.
+- `all: $(KERNEL)` says that to build all, you must build `build/kernel.elf`
+- `build/kernel.elf: $(OBJS)` says that to build `build/kernel.elf` you need `arch/x86_64/boot.o` and `src/kernel.o`
+- `$(LD) $(LDFLAGS) -o $@ $^` is the command line (must start with a tab) that tells make how to build `build/kernel.elf`.
+    - `$(LD)` refers to the linker executable
+    - `$(LDFLAGS)` refers to the linker flags
+    - `-o` specifies the output file 
+    - `$@` refers to the target name (in this case `build/kernel.elf`)
+    - `$^` refers to all the dependencies (the `.o` files)
+    - So this basically expands to `toolchain/install/bin/$(TARGET)-ld -T arch/x86_64/linker.ld -nostdlib -o build/kernel.elf arch/x86_64/boot.o src/kernel.o`.
+- `arch/x86_64/boot.o: arch/x86_64/boot.s` says that `boot.o` requires `boot.s`
+- `$(AS) $< -o $@`is the command that make runs to build `boot.o` using `boot.s`
+    - `$(AS)` refers to the assembler.
+    - `$<` refers to the first dependency. (in this case `arch/x86_64/boot.s`)
+    - `-o` specifies the output file
+    - `$@` refers to the target name. (in this case `arch/x86_64/boot.o`)
+- `src/kernel.o: src/kernel.c` says that `kernel.o` depends on `kernel.c`.
+- `$(CC) $(CFLAGS) -c $< -o $@` is the command that make runs to build `kernel.o` from `kernel.c`.
+    - `$(CC)` refers to the compiler.
+    - `$(CFLAGS)` refers to the compiler flags.
+    - `-c` tells GCC to only compiler, and not to link. (Since we are doing that separately)
+    - `$<` refers to the first dependency.
+    - `-o` specifies the output file.
+    - `$@` refers to the target file.
+- `clean:` is the clean target. Has no dependencies. Is called a phony target and is used to delete build artifacts. which can be and has to be run explicitly by doing `make clean`.
+- `rm -rf build/*.o build/*.elf` deletes all `.o` and `.elf` files in `build/`
+> [!info] How does make decide whether is should rebuild a target or not?
+> make compares the timestamps for the file modification time (mtime) for the target and dependencies. There are 3 possible cases:
+> 1. The target does not exist: make builds the targets
+> 2. The target exists and mtime(target) < any(mtime(dependencies)): rebuild the target
+> 3. The target exists and mtime(target) > all(mtime(dependencies)): do nothing
+> This is a reliable method because code editors update mtime when saving a file, compilers, assemblers and linkers update mtime after compiling, assembling or linking a file and the file system keeps track of the mtime of all files.
