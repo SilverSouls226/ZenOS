@@ -407,10 +407,15 @@ ENTRY(_start)
 
 SECTIONS
 {
+    /* Multiboot header must be in first 32 KiB of file */
+    .multiboot ALIGN(8) : AT(0) {
+        KEEP(*(.multiboot))
+    }
+
+    /* Kernel is loaded at 1 MiB in memory */
     . = 1M;
 
     .text : ALIGN(4K) {
-        *(.multiboot)
         *(.text*)
     }
 
@@ -441,7 +446,16 @@ SECTIONS
      - Memory addresses
      - Section Placement
      - Alignment
- - `. - 1M`
+ - `.multiboot` creates an output section names `.multiboot`
+     - `ALING(8)` ensures 8 bit alignment (as required by Multiboot2 specification)
+ - `:AT(0)`
+     - Sets File offset = 0
+     - Memory address is irrelevant since GRUB scans the file, not virtual memory
+     - This guarantees the header appears early enough for GRUB to find it.
+     - File layout is what GRUB sees, runtime layout is where the kernel executes.
+ - `KEEP(*(.multiboot))`
+     - Forces the linker to keep this section and not  discard it even if it looks unused.
+ - `. = 1M` sets the virtual memory address counter.
      - `.` refers to current location counter
      - `1M` means 1 megabyte (0x100000)
      - **Translation:** Start placing the kernel at the physical address 1MB.
@@ -502,19 +516,21 @@ nano arch/x86_64/boot.s
 ```
 `nano arch/x86_64/boot.s`:
 ```asm
-.set ALIGN,    1<<0
-.set MEMINFO,  1<<1
-.set FLAGS,    ALIGN | MEMINFO
-.set MAGIC,    0xE85250D6
-.set CHECKSUM, -(MAGIC + FLAGS)
-
-.section .multiboot
+.section .multiboot, "a"
 .align 8
-.long MAGIC
-.long FLAGS
-.long CHECKSUM
-.long 0
-.long 0
+
+header_start:
+    .long 0xE85250D6          # magic
+    .long 0                  # architecture (i386/x86_64)
+    .long header_end - header_start
+    .long -(0xE85250D6 + 0 + (header_end - header_start))
+
+    # End tag (required)
+    .word 0
+    .word 0
+    .long 8
+
+header_end:
 
 .section .text
 .global _start
@@ -524,10 +540,10 @@ _start:
     mov $stack_top, %rsp
     call kernel_main
 
-hang:
+.hang:
     cli
     hlt
-    jmp hang
+    jmp .hang
 
 .section .bss
 .align 16
@@ -540,34 +556,53 @@ stack_top:
      - Creates a stack manually
      - Transfer control to C
 
- - `.set`: Assembler constant definition
- - `ALIGN`: Const name
- - `1<<0`: bit shift 
- - Meaning of lines 1 - 5:
-     - Set ALIGN = 0001
-     - MEMINFO = 0010
-     - FLAGS = 0001 | 0010 = 0011 \[bitwise OR]
-     - MAGIC = 11101000010100100101000011010110
-     - CHECKSUM = 2's complement of (MAGIC + FLAGS) = 2's complement of (11101000010100100101000011011001) = 100010111101011011010111100100111
+ - `.section multiboot, "a"`
+     - creates a section names `.multiboot`
+     - `"a"` means ALLOC -> this loads this section into memory because GRUB scans only loaded sections. Without it, GRUB would never see this header.
+- `.align 8`
+    - It aligns the next symbol on an 8 byte boundary.
+    - Required by Multiboot2 spec. GRUB will reject it if it is not aligned properly.
+- `header_start:`
+    - label marking the exact beginning of the Multiboot2 header
+    - Everything GRUB reads starts form here
+    - Length and checksum calculations depend on this label
+- `.long 0xE85250D6`
+    - The **Multiboot2 magic number**
+    - Identifies this binary as Multiboot2-compliant
+    - Stored little-endian in memory
+    - If this value is wrong, GRUB ignores the kernel
+- `.long 0`
+    - Architecture field
+    - `0` means **i386 architecture**
+    - Multiboot2 uses this value for both 32-bit and 64-bit x86
+    - Required even for x86_64 kernels
+- `.long header_end - header_start`
+    - Total length of the Multiboot2 header in bytes
+    - GRUB uses this to know how many bytes to parse
+    - Includes:
+        - magic
+        - architecture
+        - length
+        - checksum
+        - all tags (including the end tag)
+- `.long -(0xE85250D6 + 0 + (header_end - header_start))`
+    - This is a checksum value that Multiboot2 requires before trusting the header
+
 > [!info] MAGIC and CHECKSUM
 > The MAGIC number is not any arbitrary number. GRUB searches for this exact value, the kernel binary will be ignored if this number is not found.
-> CHECKSUM is used for a simple integrity check to prevent false positives. It's value is calculated such that `MAGIC + FLAGS + CHECKSUM = 0`
-- `.section .multiboot`
-    - Switched the output to the `.multiboot section`.
-    - Should match what is given in the linker script.
-- `.align 8`
-    - Aligns to 8 bytes
-    - Required by Multiboot2 spec.
-- `.long MAGIC`
-    - Emit 4 bytes containing MAGIC
-- `.long FLAGS`
-    - Emit flags
-- `.long CHECKSUM`
-    - Emit checksum
-- `.long 0` (x2)
-    - Reserved fileds (length and address field omitted)
+> CHECKSUM is used for a simple integrity check to prevent false positives. It's value is calculated such that $$\text{MAGIC} + \text{Architecture} + \text{Length of Header} + \text{CHECKSUM} = 0 \mod 2^{32}$$
+
+- `.word 0`, `.word 0`, `.long 8` together make the Multiboot2 end tag.
+    - It sets
+        - type = 0
+        - flags = 0
+        - size = 8
+    - It tells GRUB to stop parsing and that there are no more tags.
+- `header_end:`
+    - Marks the end of the header. Used along with the `header_start` label to compute the length of the header.
 - `.section text`
-    - Switch to executable code
+    - This is the start of the executable code. This section will be loaded at 1MiB (as per the linker script)
+    - CPU begins execution here after GRUB hands off control.
 - `.global _start`
     - Make `_start` visible to the linker
     - Without this `ENTRY(_start)` fails and the kernel will not boot.
