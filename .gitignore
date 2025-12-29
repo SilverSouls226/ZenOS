@@ -6,3 +6,5 @@ toolchain/src/
 toolchain/build/
 toolchain/install/
 diff.txt
+*.elf
+fileList.txt
